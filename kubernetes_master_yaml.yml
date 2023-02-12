@@ -24,3 +24,21 @@ spec:
         ports:
         - containerPort: 80
 
+
+---
+#Rolling Update Strategy of deployment
+spec:
+  minReadySeconds: 20
+  progressDeadlineSeconds: 600
+  replicas: 4
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      name: webapp
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+    
+    
