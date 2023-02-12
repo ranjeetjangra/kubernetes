@@ -1,0 +1,5 @@
+*Check the Nodes connected with Master*
+kubectl get nodes
+
+*Check Details of Nodes connected with Master*
+kubectl get nodes -o wide

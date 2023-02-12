@@ -1,0 +1,26 @@
+---
+#Prepare Deployment YAML
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: techtracker-deployment
+  namespace: techtracker
+  labels:
+    app: nginx
+    env: qa
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+
