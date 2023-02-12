@@ -42,3 +42,858 @@ spec:
     type: RollingUpdate
     
     
+---
+#Prepare DaemonSet yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: techtracker-daemonset
+  namespace: techtracker
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80    
+        
+---
+#Nodeselector Scheduling
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: techtracker-deployment
+  namespace: techtracker
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+      nodeSelector:
+       env: test
+
+        
+---
+#nodeName Scheduling
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: techtracker-deployment
+  namespace: techtracker
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+      nodeName: worker-node2
+
+        
+---
+#Taint and Tolerations
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: techtracker-deployment
+  namespace: techtracker
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+      tolerations:
+        - key: "dubai"
+          operator: "Equal"
+          value: "hot"
+          effect: "NoSchedule"
+
+
+        
+---
+#Apply Antiaffinity yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-cache
+  namespace: techtracker
+spec:
+  selector:
+    matchLabels:
+      app: store
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: store
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - store
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: redis-server
+        image: redis:3.2-alpine
+
+        
+---
+#Apply Affinity and Antiaffinity yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-server
+spec:
+  selector:
+    matchLabels:
+      app: web-store
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: web-store
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - web-store
+            topologyKey: "kubernetes.io/hostname"
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - store
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: web-app
+        image: nginx:1.16-alpine
+
+        
+---
+#Deployment Yaml for creating a mysql pod
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: techtracker
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - image: mysql:5.6
+          name: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: password
+
+        
+---
+#Create deployment using secret values
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: techtracker
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - image: mysql:5.6
+          name: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysqlsecret
+                  key: mysqlpassword
+
+        
+---
+#Create Configmaps
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: techtracker
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - image: mysql:5.6
+          name: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: mysqlcm
+                  key: mysqlpassword
+
+        
+---
+#Create Resource Quota to Limit Pod Count as 4
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+    name: pods-high
+    namespace: techtracker
+spec:
+    hard:
+      pods: "4"
+
+        
+---
+#Creating static pod without replicaset and deployment
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+  namespace: finance
+  labels:
+    app: redis
+spec:
+  containers:
+    - name: redis
+      image: redis
+~                
+
+        
+---
+#Enter Sleep with timer in container command
+apiVersion: v1
+kind: Pod 
+metadata:
+  name: ubuntu-sleeper-2
+spec:
+  containers:
+  - name: ubuntu
+    image: ubuntu
+    command:
+      - sleep
+      - "5000"
+
+        
+---
+#Using configMapKeyRef
+spec:
+  containers:
+  - env:
+    - name: APP_COLOR
+      valueFrom:
+        configMapKeyRef:
+          name: webapp-config-map
+           key: APP_COLOR
+
+        
+---
+#Secret with multiple key
+spec:
+  containers:
+    - env:
+      - name: DB_Host
+        valueFrom:
+          secretKeyRef:
+            name: db-secret
+            key: DB_Host
+      - name: DB_User
+        valueFrom:
+          secretKeyRef:
+            name: db-secret
+            key: DB_User
+      - name: DB_Password
+        valueFrom:
+          secretKeyRef:
+            name: db-secret
+            key: DB_Password
+  - image: kodekloud/simple-webapp-mysql
+    imagePullPolicy: Always
+    name: webapp
+
+        
+---
+#Change default user to run command in container using securityContext
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2022-12-27T07:48:34Z"
+  name: ubuntu-sleeper
+  namespace: default
+  resourceVersion: "718"
+  uid: 9f52cb0e-475b-4174-a657-a3a4994822e9
+spec:
+  securityContext:
+    runAsUser: 1010
+  containers:
+  - command:
+    - sleep
+    - "4800"
+    image: ubuntu
+
+        
+---
+#securityContext capability
+spec:
+  containers:
+  - command:
+    - sleep
+    - "4800"
+    image: ubuntu
+    imagePullPolicy: Always
+    name: ubuntu
+    securityContext:
+      capabilities:
+        add: ["SYS_TIME"]
+    resources: {}
+
+        
+    
+---
+#Multple capabilities in Array
+  containers:
+  - command:
+    - sleep
+    - "4800"
+    image: ubuntu
+    imagePullPolicy: Always
+    name: ubuntu
+    securityContext:
+      capabilities:
+        add: ["SYS_TIME", "NET_ADMIN"]
+    resources: {}
+
+        
+---
+#token using serviceAccount
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: web-dashboard
+    spec:
+      serviceAccountName: dashboard-sa
+      containers:
+      - env:
+
+        
+---
+#Liveness, Readiness, and Startup Probes
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2021-08-01T04:55:35Z"
+  labels:
+    name: simple-webapp
+  name: simple-webapp-2
+  namespace: default
+spec:
+  containers:
+  - env:
+    - name: APP_START_DELAY
+      value: "80"
+    image: kodekloud/webapp-delayed-start
+    imagePullPolicy: Always
+    name: simple-webapp
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    name: simple-webapp
+  name: simple-webapp-1
+  namespace: default
+spec:
+  containers:
+  - env:
+    - name: APP_START_DELAY
+      value: "80"
+    image: kodekloud/webapp-delayed-start
+    imagePullPolicy: Always
+    name: simple-webapp
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080
+    livenessProbe:
+      httpGet:
+        path: /live
+        port: 8080
+      periodSeconds: 1
+      initialDelaySeconds: 80        
+---
+#InitContainer yaml
+spec:
+  containers:
+  - command:
+    - sh
+    - -c
+    - echo The app is running! && sleep 3600
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    name: green-container-1
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-2dz76
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  initContainers:
+  - command:
+    - sh
+    - -c
+    - sleep 5
+    image: busybox
+    imagePullPolicy: Always
+    name: init-myservice
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-2dz76
+      readOnly: true
+  nodeName: controlplane
+
+        
+---
+#completions and backoffLimit
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: throw-dice-job
+spec:
+  backoffLimit: 15 # This is so the job does not quit before it succeeds.
+  template:
+    spec:
+      containers:
+      - name: throw-dice
+        image: kodekloud/throw-dice
+      restartPolicy: Never
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: throw-dice-job
+spec:
+  completions: 3
+  backoffLimit: 25 # This is so the job does not quit before it succeeds.
+  template:
+    spec:
+      containers:
+      - name: throw-dice
+        image: kodekloud/throw-dice
+      restartPolicy: Never
+      
+      
+              
+---
+#parallelism
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: throw-dice-job
+spec:
+  completions: 3
+  parallelism: 3
+  backoffLimit: 25 # This is so the job does not quit before it succeeds.
+  template:
+    spec:
+      containers:
+      - name: throw-dice
+        image: kodekloud/throw-dice
+      restartPolicy: Never
+~                          
+
+        
+---
+# cron job using schedule
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: throw-dice-cron-job
+spec:
+  schedule: "30 21 * * *"
+  jobTemplate:
+    spec:
+      completions: 3
+      parallelism: 3
+      backoffLimit: 25 # This is so the job does not quit before it succeeds.
+      template:
+        spec:
+          containers:
+          - name: throw-dice
+            image: kodekloud/throw-dice
+          restartPolicy: Never
+
+        
+
+#Create a NodePort svc to access the web-app from outside of cluster
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-service
+spec:
+  type: NodePort
+  ports:
+    - targetPort: 8080
+      port: 8080
+      nodePort: 30080
+  selector:
+    name: simple-webapp
+
+        
+---
+#Create Policy to allow pod access from outside
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: internal-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      name: internal
+  policyTypes:
+  - Egress
+  - Ingress
+  ingress:
+    - {}
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          name: mysql
+    ports:
+    - protocol: TCP
+      port: 3306
+
+  - to:
+    - podSelector:
+        matchLabels:
+          name: payroll
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+
+        
+---
+#Create a new Ingress for path /pay and backend service name : pay-service
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test-ingress
+  namespace: critical-space
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /pay
+        pathType: Prefix
+        backend:
+          service:
+           name: pay-service
+           port:
+            number: 8282
+
+        
+---
+#Create a volume “log-volume” with hostpath “/var/log/webapp” and map it with /log in container volumeMounts:
+apiVersion: v1
+kind: Pod
+metadata:
+  name: webapp
+spec:
+  containers:
+  - name: event-simulator
+    image: kodekloud/event-simulator
+    env:
+    - name: LOG_HANDLERS
+      value: file
+    volumeMounts:
+    - mountPath: /log
+      name: log-volume
+
+  volumes:
+  - name: log-volume
+    hostPath:
+      # directory location on host
+      path: /var/log/webapp
+      # this field is optional
+      type: Directory
+
+        
+---
+#Create a Persistent Volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-log
+spec:
+  persistentVolumeReclaimPolicy: Retain
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 100Mi
+  hostPath:
+    path: /pv/log
+
+        
+---
+#Create a pvc Persistent Volume Claim
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: claim-log-1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Mi
+
+        
+
+#STORAGE CLASS
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: delayed-volume-sc
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+
+        
+---
+#create a Pod using persistentVolumeClaim
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:alpine
+    volumeMounts:
+      - name: local-persistent-storage
+        mountPath: /var/www/html
+  volumes:
+    - name: local-persistent-storage
+      persistentVolumeCl
+
+        
+---
+#Create a Role and roleBinding to access Pods from dev-user
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: default
+  name: developer
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "create","delete"]
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: dev-user-binding
+subjects:
+- kind: User
+  name: dev-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer
+  apiGroup: rbac.authorization.k8s.io
+
+        
+---
+#Update the Role to create Pod using deployment .
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: blue
+  name: developer
+rules:
+- apiGroups: ["apps"]
+  resources: ["pods"]
+  resourceNames: ["darf-blue-app"]
+  verbs: ["list", "create","delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["list", "create", "delete", "watch"]
+
+        
+---
+#Add storage access to existing role michelle
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: michelle-role
+rules:
+- apiGroups: ["v1"]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch", "delete", "create"]
+- apiGroups: ["storage.k8s.io/v1"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list", "watch", "delete", "create"]
+- apiGroups: ["v1"]
+  resources: ["persistentvolumes"]
+  verbs: ["get", "list", "watch", "delete", "create"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: michelle-binding
+subjects:
+- kind: User
+  name: michelle
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: michelle-role
+  apiGroup: rbac.authorization.k8s.io
+
+        
+---
+#custom Resource (CustomResourceDefinition)
+kind: CustomResourceDefinition
+metadata:
+  name: nternals.datasets.kodecloud.com
+spec:
+  group: datasets.kodecloud.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                internalLoad:
+                  type: string
+                range:
+                  type: integer
+                percentage:
+                  type: string
+  scope: namespaced
+  names:
+    plural: internal
+    singular: internal
+    kind: Internal
+    shortNames:
+    - int
+
+   
+   
+        
+---
+#Create a new custom resource using customresourcedefinitions
+kind: Internal
+apiVersion: datasets.kodekloud.com/v1
+metadata:
+  name: internal-space
+  namespace: default
+spec:
+  internalLoad: "high"
+  range: 80
+  percentage: "50"
+~               
+
+        
+        
